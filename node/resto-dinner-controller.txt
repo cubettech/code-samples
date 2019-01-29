@@ -1,0 +1,453 @@
+const config = require('config');
+const mongoose = require('mongoose');
+const Promise = require('bluebird');
+
+const eClient = require('../../../elastic/connection');
+const frontEndUrl = config.get('frontEndUrl');
+const dinnerIndex = config.get('dinnerIndex');
+const emailService = require('../../../utilities/mail.service');
+const ownerEmail = config.get('ownerEmail');
+
+const Shortener = require('../../../utilities/url-shortener.js');
+
+const Restaurant = require('../../../models/restaurant');
+const Menu = require('../../../models/menu');
+const GroupDinner = require('../../../models/groupDinner');
+const GroupDinnerInvitees = require('../../../models/groupDinnerInvitees');
+const User = require('../../../models/user');
+
+const sendGridMail = dinner => {
+  // console.log(".........", dinner);
+  return emailService.sendPlainEmail({
+    fromAddress: 'no-reply@mealoupe.com',
+    toAddress: ownerEmail,
+    subject: `Mealoupe User App – Group Dinner`,
+    html: `<p>Organizer: ${dinner.organizer.firstName || ''} ${dinner.organizer.lastName || ''}, ${
+      dinner.organizer.email
+    },   ${dinner.organizer.mobileNumber || ''} </p>
+    <p>Restaurant name: ${dinner.restaurant.name || ''}</p>
+<p>Restaurant address: ${dinner.restaurant.street || ''}, ${dinner.restaurant.city || ''}, ${dinner
+      .restaurant.state || ''}</p>
+<p>Date and Time: ${dinner.dateTime || ''}</p>`,
+    body: `Organizer: ${dinner.organizer.firstName || ''} ${dinner.organizer.lastName || ''}, ${
+      dinner.organizer.email
+    },   ${dinner.organizer.mobileNumber || ''}
+    Restaurant name: ${dinner.restaurant.name || ''}
+Restaurant address: ${dinner.restaurant.street || ''}, ${dinner.restaurant.city || ''}, ${dinner
+      .restaurant.state || ''}
+Date and Time: ${dinner.dateTime || ''}`
+  });
+};
+
+const saveDinnerIndex = dinner => {
+  let activeMenuItems = 0;
+  return Menu.aggregate([
+    {
+      $match: { restaurantId: dinner.restaurant._id }
+    },
+    {
+      $project: {
+        sumsSizes: { $size: '$items' }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        count: {
+          $sum: '$sumsSizes'
+        }
+      }
+    }
+  ]).then(result => {
+    if (result && result.length) {
+      activeMenuItems = result[0].count;
+    }
+    let Id = dinner._id.toString();
+    let eObj = {
+      street: dinner.restaurant.street,
+      city: dinner.restaurant.city,
+      state: dinner.restaurant.state,
+      country: dinner.restaurant.country,
+      name: dinner.restaurant.name,
+      secId: dinner.restaurant.secId,
+      restaurantId: dinner.restaurant._id,
+      cuisineList: dinner.restaurant.cuisineList,
+      location: {
+        lat: dinner.restaurant.loc.lat ? dinner.restaurant.loc.lat : 37.7749,
+        lon: dinner.restaurant.loc.lng ? dinner.restaurant.loc.lng : 122.4194
+      },
+      id: Id,
+      profileImage: dinner.restaurant.profileImage ? dinner.restaurant.profileImage : null,
+      price_level: dinner.restaurant.google_price_level,
+      reviewCount: dinner.restaurant.restOnlyReviews || 0,
+      menuReviewCount: dinner.restaurant.menuOnlyReviews || 0,
+      weightedAvg: dinner.restaurant.restOnlyWeightedAvg || 0,
+      menuWeightedAvg: dinner.restaurant.menuOnlyWeightedAvg || 0,
+      totalWeightedAvg:
+        (dinner.restaurant.menuOnlyWeightedAvg + dinner.restaurant.restOnlyWeightedAvg) / 2,
+      totalReviewCount: dinner.restaurant.menuOnlyReviews + dinner.restaurant.restOnlyReviews,
+      openPeriods: dinner.restaurant.openPeriods,
+      organizerId: dinner.organizer._id,
+      organizerFirstName: dinner.organizer.firstName,
+      organizerLastName: dinner.organizer.lastName,
+      organizerMobileNumber: dinner.organizer.mobileNumber || '',
+      dinnerIndexType: 'private',
+      organizerAvatar: dinner.organizer.profilePic || dinner.organizer.socialAvatar,
+      dinnerName: dinner.caption,
+      dinnerTime: dinner.dateTime,
+      bitlyUrl: dinner.shortUrl,
+      activeMenuItems: activeMenuItems
+    };
+    return eClient.update({
+      index: dinnerIndex,
+      refresh: true,
+      id: Id,
+      type: 'details',
+      body: {
+        doc: eObj,
+        doc_as_upsert: true
+      }
+    });
+  });
+};
+
+const addInviteesInDinnerIndex = dinnerId => {
+  let Id = dinnerId.toString();
+  let noOfInvitees = 0;
+  return GroupDinnerInvitees.count({
+    groupDinner: dinnerId,
+    cancelTime: { $exists: false }
+  })
+    .then(count => {
+      noOfInvitees = count;
+      return GroupDinnerInvitees.find({
+        groupDinner: dinnerId
+      })
+        .populate('user', 'firstName lastName profilePic socialAvatar')
+        .lean()
+        .exec()
+        .then(dinners => {
+          if (!dinners.length) return [];
+          return dinners.map(dinner => {
+            return {
+              userId: dinner.user._id,
+              firstName: dinner.user.firstName,
+              lastName: dinner.user.lastName,
+              profilePic: dinner.user.socialAvatar || dinner.user.profilePic,
+              mobileNumber: dinner.user.mobileNumber || '',
+              rsvpTime: dinner.RSVPTime,
+              cancelTime: dinner.cancelTime || null,
+              isCancelled: dinner.isCancelled
+            };
+          });
+        });
+    })
+    .then(data => {
+      return eClient.update({
+        index: dinnerIndex,
+        refresh: true,
+        id: Id,
+        type: 'details',
+        body: {
+          doc: { dinnerInvitees: data, noOfInvitees: noOfInvitees },
+          doc_as_upsert: true
+        }
+      });
+    });
+};
+
+let groupDinnerById = (req, res, next, groupDinnerId) => {
+  res.locals.groupDinnerId = groupDinnerId;
+  next();
+};
+
+/**
+ * @api {post} /v1/common/groupDinner Create Group Dinner
+ * @apiName Create a new group dinner
+ * @apiGroup Group Dinner
+ * @apiHeader {String} Authorization `Bearer <jwt_token>`
+ *
+ * @apiParam {String} restaurant Restaurant ID.
+ * @apiParam {Date} dateTime Date for the group dinner event.
+ * @apiParam {String} caption Caption for group dinner.
+ * @apiParam {String} attendees Attendees scale. Eg: 1-5.
+ *
+ * @apiSuccess {String} status status.
+ * @apiSuccess {String} msg or data
+ */
+let addGroupDinner = (req, res) => {
+  let newGroupDinner;
+  let dinnerId = '';
+  req.checkBody('restaurant', 'Invalid restaurant').notEmpty();
+  req.checkBody('dateTime', 'Invalid dateTime').notEmpty();
+  req.checkBody('caption', 'Invalid caption').notEmpty();
+  req.checkBody('attendees', 'Invalid attendees').notEmpty();
+  req
+    .getValidationResult()
+    .then(validated => {
+      newGroupDinner = new GroupDinner({
+        organizer: res.locals.decoded.userId,
+        restaurant: req.body.restaurant,
+        dateTime: req.body.dateTime,
+        caption: req.body.caption
+      });
+      return Shortener.shorten(`${frontEndUrl}/groupDinner/${newGroupDinner._id}`);
+    })
+    .then(urlShortened => {
+      newGroupDinner.shortUrl = urlShortened.url;
+      return newGroupDinner.save();
+    })
+    .then(dinner => {
+      dinnerId = dinner._id;
+      return GroupDinner.findOne({ _id: dinner._id })
+        .populate('restaurant')
+        .populate('organizer', 'firstName lastName profilePic socialAvatar mobileNumber email')
+        .lean()
+        .exec();
+    })
+    .then(dinnerData => {
+      const elasticUpdate = saveDinnerIndex(dinnerData);
+      const mailSendFunction = sendGridMail(dinnerData);
+      return Promise.all([elasticUpdate, mailSendFunction]);
+    })
+    .then(result => {
+      // console.log(result);
+      return res.json({ dinnerId: dinnerId });
+    })
+    .catch(error => {
+      console.log('addGroupDinner error', error);
+      res.status(500).json({
+        error: error
+      });
+    });
+};
+
+/**
+ * @api {put} /v1/common/groupDinner/<groupDinnerId> Update Group Dinner
+ * @apiName Updated given group dinner
+ * @apiGroup Group Dinner
+ * @apiHeader {String} Authorization `Bearer <jwt_token>`
+ *
+ * @apiParam {String} restaurant Restaurant ID.
+ * @apiParam {Date} dateTime Date for the group dinner event.
+ * @apiParam {String} caption Caption for group dinner.
+ * @apiParam {String} attendees Attendees scale. Eg: 1-5.
+ *
+ * @apiSuccess {String} status status.
+ * @apiSuccess {String} msg or data
+ */
+
+let updateGroupDinner = (req, res) => {
+  req.checkBody('restaurant', 'Invalid restaurant').notEmpty();
+  req.checkBody('dateTime', 'Invalid dateTime').notEmpty();
+  req.checkBody('caption', 'Invalid caption').notEmpty();
+
+  req
+    .getValidationResult()
+    .then(validated => {
+      return GroupDinner.update(
+        {
+          _id: res.locals.groupDinnerId
+        },
+        {
+          organizer: res.locals.decoded.userId,
+          restaurant: req.body.restaurant,
+          dateTime: req.body.dateTime,
+          caption: req.body.caption
+        },
+        {
+          safe: true
+        }
+      );
+    })
+    .then(dinner => {
+      return GroupDinner.findOne({ _id: res.locals.groupDinnerId })
+        .populate('restaurant')
+        .populate('organizer', 'firstName lastName profilePic socialAvatar mobileNumber')
+        .lean()
+        .exec();
+    })
+    .then(dinnerData => {
+      const dinnerMain = saveDinnerIndex(dinnerData);
+      const dinnerInvt = addInviteesInDinnerIndex(res.locals.groupDinnerId);
+      return Promise.all([dinnerMain, dinnerInvt]);
+    })
+    .then(() => {
+      res.json({ dinnerId: res.locals.groupDinnerId });
+    })
+    .catch(error => {
+      console.log('updateGroupDinner', error);
+      res.status(500).json({
+        error: error
+      });
+    });
+};
+
+/**
+ * @api {get} /v1/common/groupDinner List group dinners
+ * @apiName List group dinners
+ * @apiGroup Group Dinner
+ * @apiHeader {String} Authorization `Bearer <jwt_token>`
+ *
+ * @apiParam {Number} limit Limit value.
+ * @apiParam {Date} skip Skip value.
+ *
+ * @apiSuccess {String} status status.
+ * @apiSuccess {String} msg or data
+ */
+let listGroupDinners = (req, res) => {
+  const limitValue = parseInt(req.query.limit) || 0;
+  const skipValue = parseInt(req.query.skip) || 0;
+
+  GroupDinner.find({})
+    .skip(skipValue)
+    .limit(limitValue)
+    .lean()
+    .then(groupDinnerList => {
+      res.json({
+        skip: skipValue,
+        limit: limitValue,
+        data: groupDinnerList
+      });
+    })
+    .catch(error => {
+      console.log('listGroupDinners error', error);
+      res.status(400).json({
+        error: error
+      });
+    });
+};
+
+/**
+ * @api {get} /v1/common/groupDinner/<groupDinnerId> Get Group Dinner
+ * @apiName Get given group dinner
+ * @apiGroup Group Dinner
+ * @apiHeader {String} Authorization `Bearer <jwt_token>`
+ *
+ * @apiSuccess {String} status status.
+ * @apiSuccess {String} msg or data
+ */
+function getGroupDinner(req, res) {
+  eClient
+    .search({
+      index: dinnerIndex,
+      type: 'details',
+      body: {
+        from: 0,
+        query: {
+          term: { id: res.locals.groupDinnerId }
+        }
+      }
+    })
+    .then(data => {
+      // lme.i(data.hits);
+      if (data.hits.total !== 0) {
+        return res.status(200).send({
+          status: 'Success',
+          data: data.hits.hits
+        });
+      } else {
+        return res.status(200).send({
+          status: 'Success',
+          data: []
+        });
+      }
+    })
+    .catch(err => {
+      lme.e(err);
+      return res.status(500).send({
+        status: 'Failed',
+        msg: err
+      });
+    });
+}
+
+/**
+ * @api {post} /v1/common/groupDinner/<groupDinnerId>/rsvp Make Group dinner RSVP
+ * @apiName Make Group dinner RSVP
+ * @apiGroup Group Dinner
+ * @apiHeader {String} Authorization `Bearer <jwt_token>`
+ *
+ * @apiParam {String} action RSVP action. Eg: ACCEPT, REJECT
+ *
+ * @apiSuccess {String} status status.
+ * @apiSuccess {String} msg or data
+ */
+
+let handleRSVP = (req, res) => {
+  req.checkBody('action', 'Invalid action').notEmpty();
+
+  let rsvpAction = {
+    groupDinner: res.locals.groupDinnerId,
+    user: res.locals.decoded.userId
+  };
+
+  console.log(req.body);
+
+  if (req.body.action == 'ACCEPT') {
+    rsvpAction.RSVPTime = new Date();
+    rsvpAction['$unset'] = { cancelTime: '' };
+    rsvpAction.isCancelled = false;
+  }
+  if (req.body.action == 'REJECT') {
+    rsvpAction.cancelTime = new Date();
+    rsvpAction.isCancelled = true;
+  }
+
+  GroupDinnerInvitees.update(
+    {
+      groupDinner: res.locals.groupDinnerId,
+      user: res.locals.decoded.userId
+    },
+    rsvpAction,
+    {
+      upsert: true
+    }
+  )
+    .then(rsvpHandled => {
+      return addInviteesInDinnerIndex(res.locals.groupDinnerId);
+    })
+    .then(addedToIndex => {
+      return res.json({
+        message: `RSVP changed to state : ${req.body.action}`
+      });
+    })
+    .catch(error => {
+      console.log('RSVP error');
+      console.log(error);
+      return res.status(500).json({
+        error: error
+      });
+    });
+};
+
+const searchInGroupDinner = (req, res) => {
+  if (!req.query || !req.query.userId) {
+    res.status(400).json({
+      error: 'Invalid Parameters'
+    });
+  }
+  const userId = req.query.userId;
+
+  return eClient
+    .search({
+      index: dinnerIndex,
+      type: 'details',
+      body: {
+        from: 0,
+        size: rSize,
+        query: newQuery
+      }
+    })
+    .then(data => {})
+    .catch(err => {});
+};
+
+module.exports = {
+  groupDinnerById,
+  addGroupDinner,
+  updateGroupDinner,
+  listGroupDinners,
+  getGroupDinner,
+  handleRSVP
+};

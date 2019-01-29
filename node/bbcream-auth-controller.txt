@@ -1,0 +1,87 @@
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const Admin = require('mongoose').model('admin');
+const saltRounds = 10;
+const config = require('../../../config/env/');
+
+exports.signUpAdmin = (req, res) => {
+  let adminDetails;
+  bcrypt
+    .hash(res.locals.admin.password, saltRounds)
+    .then(hash => {
+      let newAdmin = new Admin({
+        username: res.locals.admin.username,
+        password: hash,
+        full_name: res.locals.admin.full_name,
+        email: res.locals.admin.email,
+        is_active: false
+      });
+      adminDetails = newAdmin;
+      return newAdmin.save();
+    })
+    .then(adminSaved => {
+      return jwt.sign(
+        { admin_id: adminDetails._id, username: adminDetails.username },
+        config.jwt.secret_key,
+        { expiresIn: config.jwt.expiry }
+      );
+    })
+    .then(jwtCreated => {
+      res.json({
+        status: 1,
+        success: 'User signin success',
+        token: jwtCreated
+      });
+    })
+    .catch(err => {
+      res.status(500).json({
+        status: 0,
+        error: 'Internal error'
+      });
+    });
+};
+
+exports.signInAdmin = (req, res) => {
+  let adminDetails;
+  Admin.findOne({ username: res.locals.admin.username })
+    .then(userFound => {
+      if (userFound && userFound.username) {
+        adminDetails = userFound;
+        return bcrypt.compare(res.locals.admin.password, userFound.password);
+      } else {
+        return Promise.reject('Username password missmatch!');
+      }
+    })
+    .then(passwordMatch => {
+      if (passwordMatch === true) {
+        return jwt.sign(
+          { admin_id: adminDetails._id, username: adminDetails.username },
+          config.jwt.secret_key,
+          { expiresIn: config.jwt.expiry }
+        );
+      } else {
+        return Promise.reject('Username password missmatch!');
+      }
+    })
+    .then(jwtCreated => {
+      res.json({
+        status: 1,
+        success: 'User signin success',
+        token: jwtCreated
+      });
+    })
+    .catch(err => {
+      res.status(400).json({
+        status: 0,
+        error: err
+      });
+    });
+};
+
+exports.signOutAdmin = (req, res) => {
+  res.json({
+    status: 1,
+    success: 'User signout success',
+    token: jwt.sign({}, config.jwt.secret_key, { expiresIn: '0s' })
+  });
+};
