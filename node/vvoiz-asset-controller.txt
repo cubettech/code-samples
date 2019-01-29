@@ -1,0 +1,114 @@
+const uuidv4 = require('uuid/v4');
+const mongoose = require('mongoose');
+const Asset = mongoose.model('asset');
+const s3Controller = require('./s3.server.controller.js');
+const Promise = require('bluebird');
+
+// verifies and stores assetId
+const assetbyId = (req, res, next, assetId) => {
+  Asset.findOne({_id: assetId})
+  .then((assetFound) => {
+    res.locals.assetId = assetFound._id;
+    next();
+  })
+  .catch((error) => {
+    return res.status(404).json({
+      'message': 'Asset not found!',
+      'errors': error,
+    });
+  });
+};
+
+// adds asset to the assets collection
+const insertAsset = (req, res) => {
+  const assetType = res.locals.assetType || 'COMMON';
+
+  const randomFileId = uuidv4();
+  const tempFileNameSplit = res.locals.asset.fileName.split('.');
+  const randomFileName = `${assetType}/${randomFileId}.${tempFileNameSplit[tempFileNameSplit.length - 1]}`;
+
+  const newAsset = new Asset({
+    title: res.locals.asset.fileName,
+    fileName: randomFileName,
+    fileType: res.locals.asset.fileType,
+    assetType: assetType,
+  });
+
+  newAsset.save()
+  .then((assetSaved) => {
+    return s3Controller.makePutSignedUrl(randomFileName, res.locals.asset.fileType);
+  })
+  .then((urlGenerated) => {
+    res.json({
+      '_id': newAsset._id,
+      'url': urlGenerated,
+    });
+  })
+  .catch((error) => {
+    console.log('error', error);
+    return res.status(500).json({
+      'message': 'Internal error',
+      'errors': error,
+    });
+  });
+};
+
+// generates signed url of corresponding assetId
+const getAssetGetSignedUrl = (req, res) => {
+  const fileName = req.query.file;
+  s3Controller.makeGetSignedUrl(fileName, 'image/jpeg')
+  .then((urlCreated) => {
+    res.json({
+      'url': urlCreated,
+    });
+  })
+  .catch((error) => {
+    res.json({
+      'error': error,
+    });
+  });
+};
+
+// generates signedurl for put
+const getAssetPUTUrl = (req, res) => {
+  Asset.findOne({_id: res.locals.assetId})
+  .exec()
+  .then((assetFound) => {
+    return s3Controller.makePutSignedUrl(assetFound.fileName);
+  })
+  .then((urlCreated) => {
+    res.json({
+      'url': urlCreated,
+    });
+  })
+  .catch((error) => {
+    return res.status(500).json({
+      'message': 'Internal error',
+      'error': error,
+    });
+  });
+};
+
+
+// removes asset from assets collection with given assetId
+const removeAsset = (req, res) => {
+  Asset.remove({_id: res.locals.assetId})
+  .then((assetRemoved) => {
+    return res.status(200).json({});
+  })
+  .catch((error) => {
+    return res.satus(500).json({
+      'message': 'Internal error',
+      'error': error,
+    });
+  });
+};
+
+
+module.exports = {
+  assetbyId,
+  insertAsset,
+  getAssetGetSignedUrl,
+  getAssetPUTUrl,
+  removeAsset,
+}
