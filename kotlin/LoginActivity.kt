@@ -16,14 +16,10 @@ import kotlinx.android.synthetic.main.activity_login.*
 import javax.inject.Inject
 
 class LoginActivity : BaseActivity(), LoginMvpView, View.OnClickListener {
-    override fun onError(message: String) {
-        progressBar.visibility = View.GONE
-        SnackBarFactory.showSnackBar(login_container, message)
-        etEmail.setText("")
-        etPassword.setText("")    }
 
     @Inject
     lateinit var mPresenter:LoginPresenter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
@@ -88,6 +84,13 @@ class LoginActivity : BaseActivity(), LoginMvpView, View.OnClickListener {
     override fun onNetworkError() {
         progressBar.visibility = View.GONE
         SnackBarFactory.showSnackBar(login_container, R.string.no_internet_error)
+    }
+
+    override fun onError(message: String) {
+        progressBar.visibility = View.GONE
+        SnackBarFactory.showSnackBar(login_container, message)
+        etEmail.setText("")
+        etPassword.setText("")    
     }
 
 

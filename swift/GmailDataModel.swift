@@ -26,27 +26,25 @@ struct MessageList : Codable {
     messages = try values.decodeIfPresent([Messages].self, forKey: .messages)
     nextPageToken = try values.decodeIfPresent(String.self, forKey: .nextPageToken)
     resultSizeEstimate = try values.decodeIfPresent(Int.self, forKey: .resultSizeEstimate)
-}
+  }
 }
 //MARK:- Each Mail Message Model
-  struct Messages : Codable {
-    let id : String?
-    let threadId : String?
+struct Messages : Codable {
+  let id : String?
+  let threadId : String?
+  
+  enum CodingKeys: String, CodingKey {
     
-    enum CodingKeys: String, CodingKey {
-      
-      case id = "id"
-      case threadId = "threadId"
-    }
-    
-    init(from decoder: Decoder) throws {
-      let values = try decoder.container(keyedBy: CodingKeys.self)
-      id = try values.decodeIfPresent(String.self, forKey: .id)
-      threadId = try values.decodeIfPresent(String.self, forKey: .threadId)
+    case id = "id"
+    case threadId = "threadId"
+  }
+  
+  init(from decoder: Decoder) throws {
+    let values = try decoder.container(keyedBy: CodingKeys.self)
+    id = try values.decodeIfPresent(String.self, forKey: .id)
+    threadId = try values.decodeIfPresent(String.self, forKey: .threadId)
+  }
 }
-}
-
-
 struct MessageData : Codable {
   let id : String?
   let threadId : String?
@@ -82,7 +80,6 @@ struct MessageData : Codable {
   }
   
 }
-
 struct Payload : Codable {
   let partId : String?
   let mimeType : String?
@@ -112,7 +109,6 @@ struct Payload : Codable {
   }
   
 }
-
 struct Headers : Codable {
   let name : String?
   let value : String?
@@ -130,7 +126,6 @@ struct Headers : Codable {
   }
   
 }
-
 struct Body : Codable {
   let size : Int?
   let data : String?
@@ -151,7 +146,6 @@ struct Body : Codable {
   }
   
 }
-
 struct Parts : Codable {
   let partId : String?
   let mimeType : String?

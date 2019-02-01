@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+//MARK:- Singleton to store the message metadata and raw messages
 class MailBoxData {
   var messageMetaData : MessageList?
   var messageDetails : [MessageData] = []
@@ -22,21 +23,21 @@ extension MessageData
     let payload: Payload = self.payload!
     if payload.parts != nil
     {
-    if ((payload.parts?.filter{$0.mimeType == "text/plain"})?.count)! > 0
-    {
-      return ((payload.parts?.filter{$0.mimeType == "text/plain"}.first!.body?.data)!.decryptMessage() ?? "")
+      if ((payload.parts?.filter{$0.mimeType == "text/plain"})?.count)! > 0
+      {
+        return ((payload.parts?.filter{$0.mimeType == "text/plain"}.first!.body?.data)!.decryptMessage() ?? "")
       }
       else
-    {
-      return ((payload.parts?.filter{$0.mimeType == "text/html"}.first!.body?.data)!.decryptMessage() ?? "")
+      {
+        return ((payload.parts?.filter{$0.mimeType == "text/html"}.first!.body?.data)!.decryptMessage() ?? "")
       }
-    
+      
     }
     else
     {
       return (payload.body?.data?.decryptMessage() ?? "")!
     }
-
+    
   }
   //Whether Mail has attachment
   func isAttachment()->Bool
@@ -50,19 +51,19 @@ extension MessageData
       return false
     }
   }
-   //Decode TEXT encrypted body from Gmail API
+  //Decode TEXT encrypted body from Gmail API
   func extractBodyHTML()->String
   {
     let payload: Payload = self.payload!
     if payload.parts != nil
     {
       if ((payload.parts?.filter{$0.mimeType == "text/html"})?.count)! > 0
-    {
-      return ((payload.parts?.filter{$0.mimeType == "text/html"}.first!.body?.data)!).decryptMessage() ?? ""
+      {
+        return ((payload.parts?.filter{$0.mimeType == "text/html"}.first!.body?.data)!).decryptMessage() ?? ""
       }
       else
-    {
-      return ((payload.parts?.filter{$0.mimeType == "text/plain "}.first!.body?.data)!).decryptMessage() ?? ""
+      {
+        return ((payload.parts?.filter{$0.mimeType == "text/plain "}.first!.body?.data)!).decryptMessage() ?? ""
       }
     }
     else
@@ -71,8 +72,8 @@ extension MessageData
     }
     
   }
- //Extract Email Sender Name from metadata
-  func extractSendername()->String
+  //Extract Email Sender Name from metadata
+  func extractSenderName()->String
   {
     return self.payload?.headers?.filter{$0.name == "From"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "From"}.first?.value!)!
   }
@@ -87,9 +88,9 @@ extension MessageData
     return self.payload?.headers?.filter{$0.name == "Date"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "Date"}.first?.value!)!
   }
   //Extract reciever name from metadata
-  func extractrecieversName()->String
+  func extractRecieversName()->String
   {
-      return self.payload?.headers?.filter{$0.name == "To"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "To"}.first?.value!)!
+    return self.payload?.headers?.filter{$0.name == "To"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "To"}.first?.value!)!
   }
   //Extract subject from metadata
   func extractSubject()->String
@@ -97,14 +98,14 @@ extension MessageData
     return self.payload?.headers?.filter{$0.name == "Subject"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "Subject"}.first?.value!)!
   }
   //Extract cc recipents from metadata
-  func extractCCperson()->String
+  func extractCCPerson()->String
   {
     return self.payload?.headers?.filter{$0.name == "Cc"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "Cc"}.first?.value!)!
   }
   //Extract bcc recipents from metadata
   func extractBCCPerson()->String
   {
-     return self.payload?.headers?.filter{$0.name == "Bcc"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "Bcc"}.first?.value!)!
+    return self.payload?.headers?.filter{$0.name == "Bcc"}.first?.value == nil ? "" : (self.payload?.headers?.filter{$0.name == "Bcc"}.first?.value!)!
   }
   //Extract messageTime in string Format
   func extractMessageTimeFromTimeStamp()->String
