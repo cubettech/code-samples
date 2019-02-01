@@ -9,14 +9,12 @@ import * as moment from 'moment';
 import { Router } from '@angular/router';
 import {NgForm, FormControl, FormGroup, Validators, FormArray, FormBuilder} from '@angular/forms';
 
-
 @Component({
   selector: 'create-card-settings-block',
   templateUrl: './create-card-settings-block.component.html',
   styleUrls: ['./create-card-settings-block.component.css']
 })
 export class CreateCardSettingsBlockComponent implements OnInit {
-
   @Input() audianceAgeRange : Array<string>;
   @Input() cardBudgets : Array<any>;
   @Input() cardFrequency : Array<any>;
@@ -32,7 +30,6 @@ export class CreateCardSettingsBlockComponent implements OnInit {
   audianceAgeRangeValues : Array<any>;
   disableAll : boolean = false;
   targetAudienceHistory : Array<any> = [];
- 
   tgForms = [{}];
   targetAudience: FormGroup;
   targetAudienceSelect : string = 'all';
@@ -44,16 +41,8 @@ export class CreateCardSettingsBlockComponent implements OnInit {
     showRecentSearch: false,
   };
 
-  // cardSettingsForm = new FormGroup ({
-  //   name: new FormControl()
-  // });
-
-  
-  
   @Input() model: any = {};
   @ViewChild('audianceTarget', { read: ViewContainerRef })    container: ViewContainerRef; 
-
-
   constructor(
     private cardService : CardService,
     private mapsAPILoader : MapsAPILoader,
@@ -73,12 +62,9 @@ export class CreateCardSettingsBlockComponent implements OnInit {
     
   }
 
-
   ngOnInit() {
-    
     this.today = moment().format('YYYY/MM/DD HH:mm');
     if(this.model.status == 'paused'){this.disableAll = true}
-
     if(this.edit){
       this.calculateCardBudget();
       if(this.model.audience){
@@ -94,16 +80,12 @@ export class CreateCardSettingsBlockComponent implements OnInit {
               that.targetAudienceHistory[value.id].push({"field" : audienceHistory.field})
             })
           }
-          
           that.addAudienceForEdit(value);
         });
-
-        
       }else{
         this.targetAudience = this._fb.group({
           audiences: this._fb.array([])
         });
-
         this.addAudience();
       }
     }else{
@@ -111,15 +93,7 @@ export class CreateCardSettingsBlockComponent implements OnInit {
         this.targetAudience = this._fb.group({
           audiences: this._fb.array([])
         });
-
-        //this.addAudience();
     }
-
-    
-
-    
-
-
   }
 
   initAudience(){
@@ -176,7 +150,6 @@ export class CreateCardSettingsBlockComponent implements OnInit {
       if(!audianceAgeRange.audiences.length){
         return;
       }else{
-
         for(let audience of audianceAgeRange.audiences){
           if(!audience.address || !audience.ageFrom || !audience.ageTo || !audience.gender || !audience.audienceAddress)
           {
@@ -185,7 +158,6 @@ export class CreateCardSettingsBlockComponent implements OnInit {
         }
       }      
     }
-
     this.loading = true;
     if(!this.edit){
       this.cardService.upateSettings(this.model, audianceAgeRange.audiences, this.card.id)
@@ -217,9 +189,8 @@ export class CreateCardSettingsBlockComponent implements OnInit {
         }
       );
     }
-    
-
   }
+
   dateFromSelected(event){
     let fromDate = moment(event.value).format('YYYY/MM/DD HH:mm');
     let toDate = moment(this.model.date_to).format('YYYY/MM/DD HH:mm');
@@ -227,7 +198,6 @@ export class CreateCardSettingsBlockComponent implements OnInit {
        this.model.date_to = "";
     }
     this.calculateCardBudget()
-
   }
 
   dateToSelected(event){
@@ -263,11 +233,9 @@ export class CreateCardSettingsBlockComponent implements OnInit {
         days = days + 1;
         let budgetAmount = this.model.budget;
         this.calculatedBudget = (days * budgetAmount).toString();
-
       }else{
         this.calculatedBudget = "";
       }
-
     }else
     {
       if(this.model.budget){
@@ -287,13 +255,7 @@ export class CreateCardSettingsBlockComponent implements OnInit {
   }
 
   addNewAudianceTarget(){
-    // var comp = this._cfr.resolveComponentFactory(TargetedAudienceComponent);
-    // // Create component inside container
-    // var expComponent = this.container.createComponent(comp);
-    // // see explanations
-    // expComponent.instance._ref = expComponent;
     this.tgForms.push({});
-    
   }
   isReadOnly(){
     if(this.model.status == 'paused'){
@@ -301,14 +263,10 @@ export class CreateCardSettingsBlockComponent implements OnInit {
     }else{
       return false;
     }
-    
   }
 
   targetAudienceHistoryFn(){
 
     return this.targetAudienceHistory;
   }
-
-
-
 }
