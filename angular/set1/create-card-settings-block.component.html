@@ -1,25 +1,13 @@
 <!--begin::Portlet-->
 <div class="m-portlet m-portlet--tab">
-    <!-- <div class="m-portlet__head">
-    <div *ngIf="hasHistory" class="edit-pending-label card-edit-top-margin">
-        This Card have edits pending for admin approval.
-        <button class="btn btn-primary m-btn custom-bt edit-pending-btn">Revert Changes</button>
-      </div>
-      </div> -->
-    
         <div class="m-portlet__body">
-
             <div class="m--padding-top-20 m--padding-bottom-20">
-
                 <div class="target-audience-wrapper">
                     <div class="form-group m-form__group">
                         <h5>
                             Target Audience
                         </h5>
                     </div>
-
-
-
                     <div class="total-createcrd">
                         <div class="fff">
                             <div class="ff_2">
@@ -30,10 +18,8 @@
                                 </select>
                             </div>
                         </div>
-
                         <div *ngIf="model.target == 'targeted'">
                             <div *ngFor="let form of tgForms; let i=index">
-
                                     <form [formGroup]="targetAudience" novalidate >
                                             <!--addresses-->
                                             <div formArrayName="audiences">
@@ -46,41 +32,22 @@
                                                 </div>
                                               </div>
                                             </div>
-                                    
-                                 
-
                                             <div class="clearfix"></div>
-
                                     </form>
-
-                                    <!-- <form class="form-horizontal"  [formGroup]="audienceForm" >
-                                            <input type="text" formControlName = "ageFrom">
-                                            <input type="text" formControlName = "ageTo">
-                                            <input type="text" formControlName = "audienceAddress">
-                                            <input type="radio" formControlName = "gender" value="male">
-                                            <input type="radio" formControlName = "gender" value="female">
-                                    </form> -->
-
                             </div>
                         </div>
-
                     </div>
-
                     <div class="text-right addmore-action" [hidden]="model.target != 'targeted' || model.status=='paused'" (click)="addAudience()">
                         <p class="m-portlet__nav-link btn btn-primary  m-btn m-btn--outline-2x m-btn--air m-btn--icon m-btn--icon-only m-btn--pill "
                             style="margin-bottom: 0;">
                             <i class="la la-plus"></i>
                         </p>
                     </div>
-
-
                 </div>
             </div>
             <form class="m-form m-form--fit m-form--label-align-right m-form--group-seperator-dashed b-form" name="card-settings" #f="ngForm"
             novalidate (ngSubmit)="f.form.valid && updateCardSettings(f)">
-
             <div class="create-budget-wrapper">
-
                 <div class="m-portlet__head m--margin-top-20">
                     <div class="m-portlet__head-caption">
                         <div class="m-portlet__head-title">
@@ -92,11 +59,8 @@
                             </h3>
                         </div>
                     </div>
-
                 </div>
-
                 <div class="m-form__group form-group b-b-border m--margin-top-10 m--margin-bottom-10">
-
                     <div class="m-radio-list">
                         <label class="m-radio">
                             <input [attr.disabled]="model.status=='paused' == true ? true : null"  name="time_type" [checked]="model.time_type === true" (change)="campaignTypeChanged($event)" [value]="true" type="radio"
@@ -108,18 +72,13 @@
                                 [(ngModel)]="model.time_type"> Set a start and end date
                             <span [ngClass]="{'extra-colorfld' : cardHistory?.time_type==0, 'disable-input' : model.status=='paused'}"></span>
                         </label>
-
                     </div>
-
                 </div>
-
                 <div class="form-group m-form__group row" *ngIf="model.time_type == false">
                     <div class="col-lg-12 col-xl-6">
-
                         <label class=" ">
                             Campaign Start
                         </label>
-
                         <div class='input-group date' id='m_datetimepicker_5'>
                             <owl-date-time  [disabled]="isReadOnly()" min="{{today}}" [(ngModel)]="model.date_from" name="date_from" dateFormat= 'DD/MM/YYYY hh:mm A' hourFormat="12" inputStyleClass="form-control m-input {{cardHistory?.start_date ? 'extra-colorfld' : ''}}" (onSelect)="dateFromSelected($event)"></owl-date-time>
                             <input type="hidden" [(ngModel)]="model.date_from" #dateFrom="ngModel" required name="date_from">
@@ -128,7 +87,6 @@
                         <span class="m-form__help m--font-danger" *ngIf="f.submitted && !dateFrom.valid && !model.time_type">
                             From date is required
                         </span>
-
                     </div>
                     <div class="col-lg-12 col-xl-6">
                         <label class="">
@@ -142,39 +100,23 @@
                         <span class="m-form__help m--font-danger" *ngIf="f.submitted && !dateTo.valid && !model.time_type">
                             To date is required
                         </span>
-
                     </div>
                 </div>
-
                 <div class="form-group m-form__group row">
                     <div class="col-lg-12 col-xl-6">
-
                         <label class="">
                             Budget Amount
                         </label>
-
                         <div class="m-input-icon m-input-icon--right category budgettab">
-                            <!-- <select class="form-control m-bootstrap-select m_selectpicker" title="Budget Amount " [(ngModel)]="model.budget" #cardBudget="ngModel"
-                                name="card_budget" required (change)="budgetChanged($event)">
-                                <option value="">Select a budget</option>
-                                <option *ngFor="let budget of cardBudgets" value={{budget.key}}>
-                                    ${{budget.value}}
-                                </option>
-                            </select> -->
-
                             <i aria-hidden="true" class="fa fa-usd dollarsign"></i>
                             <input [ngClass]="{'extra-colorfld' : cardHistory?.budget, 'disable-input' : model.status=='paused'}" (change)="budgetChanged()" class="form-control m-input" placeholder="Budget"
                                 type="text" [(ngModel)]="model.budget" #cardBudget="ngModel" name="card_budget" required OnlyNumber="true">
-                            <!-- <i aria-hidden="true" class="fa fa-usd dollarsign"></i>
-                            <input  class="form-control m-input" placeholder="budget amount" type="number" [(ngModel)]="model.budget" name="amount" required #cardBudget="ngModel"> -->
                         </div>
                         <span class="m-form__help m--font-danger" *ngIf="f.submitted && !cardBudget.valid">
                             Budget amount is required
                         </span>
-
                     </div>
                     <div class="col-lg-12 col-xl-6">
-
                         <label class="">
                             Frequency
                         </label>
@@ -187,33 +129,20 @@
                                 </option>
                             </select>
                         </div>
-                        <!-- <span class="m-form__help m--font-danger" *ngIf="f.submitted && !frequencyModel.valid">
-                            Frequency is required
-                        </span> -->
-
                     </div>
                 </div>
-
                 <div class="m-portlet__foot m-portlet__no-border m-portlet__foot--fit" *ngIf="calculatedBudget">
                     <div class="m-form__actions m-form__actions--solid">
                         <div class="row">
                             <div class="col-lg-12">
-
                                 <h4> Your total budget is ${{calculatedBudget}}</h4>
-
                             </div>
-
                         </div>
                     </div>
                 </div>
-
             </div>
-
-
             <div class="booking-summary-wrapper">
-
                 <div class="m-widget4__item  t_padding">
-
                         <div class="m-portlet__head m--margin-top-20">
                                 <div class="m-portlet__head-caption">
                                     <div class="m-portlet__head-title">
@@ -225,7 +154,6 @@
                                         </h3>
                                     </div>
                                 </div>
-            
                             </div>
                     <table class="table">
                         <tr>
@@ -298,15 +226,11 @@
                             <td>${{calculatedBudget}}</td>
                         </tr>
                     </table>
-
                     <h5 class="m--margin-top-30">Disclaimer</h5>
                     <p>Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's
                         standard dummy text ever.</p>
-
                 </div>
-
             </div>
-
             <div *ngIf="edit && card.status == 'active'" class="m-form__group form-group b-b-border m--margin-top-10 m--margin-bottom-10">
                 <div class="m-radio-list">
                     <label class="m-radio">
@@ -319,13 +243,11 @@
                         <br>
                         <span></span>
                     </label>
-
                     <span class="m-form__help m--font-danger" *ngIf="f.submitted && !campaignStatusChange.valid">
                         Please Select an option
                     </span>
                 </div>
             </div>
-
             <div class="m-portlet__foot m-portlet__no-border m-portlet__foot--fit">
                 <div class="m-form__actions m-form__actions--solid">
                     <div class="row">
@@ -334,22 +256,14 @@
                                 <span>
                                     <span>Submit</span>
                                 </span>
-
                             </button>
-
-
                         </div>
-
                     </div>
                 </div>
             </div>
         </form>
         </div>
-
-    
-
 </div>
-
 <div *ngIf="loading" class="loading-wrapper">
     <div class="m-loader m-loader--brand m-loader--lg"></div>
     <div class="loading-overlay"></div>
