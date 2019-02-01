@@ -1,5 +1,4 @@
 <?php
-
 use Carbon\Carbon as Carbon;
 use Ideadrop\Models\Challenge as Challenge;
 use Ideadrop\Models\ChallengeScore as ChallengeScore;
@@ -20,13 +19,11 @@ use Illuminate\Support\Collection as Collection;
  */
 class UsersDashboardController extends \BaseController
 {
-
     protected $user;
     protected $idea;
     protected $ideaScore;
     protected $challengeModel;
     protected $organisation;
-
     public function __construct(
         Organisation $organisation,
         UserRepository $user,
@@ -39,7 +36,6 @@ class UsersDashboardController extends \BaseController
         BulletinRepository $bulletin
     ) {
         parent::__construct($user);
-
         $this->idea = $idea;
         $this->user = $user;
         $this->score = $ideaScore;
@@ -63,7 +59,6 @@ class UsersDashboardController extends \BaseController
 
         $ideaActionsCount = $this->user->fetchIdeaActionsCount();
         $bestPracticeCount = $this->idea->bestPracticeCount();
-
 
         return View::make('user.dashboard.dashboard', compact(
                 'org',
@@ -110,8 +105,6 @@ class UsersDashboardController extends \BaseController
             'status' => 'success',
             'html' => $html
         ]);
-
-
     }
     
     /**
@@ -137,8 +130,6 @@ class UsersDashboardController extends \BaseController
             'status' => 'success',
             'html' => $html
         ]);
-
-
     }
 
     /**
@@ -148,7 +139,6 @@ class UsersDashboardController extends \BaseController
      */
     public function fetchNewCards()
     {
-
         $user = Auth::user();
         $html = '';
         $cardData = $this->user->fetchNewCards(['type' => Input::get('type')]);
@@ -170,13 +160,10 @@ class UsersDashboardController extends \BaseController
             default:
                 break;
         }
-
         return Response::json([
             'status' => 'success',
             'html' => $html
         ]);
-
-
     }
 
     /**
@@ -201,7 +188,6 @@ class UsersDashboardController extends \BaseController
             $searched = Input::get('searchKey');
             $closeClass = 'close_X';
         }
-
         $cards = $this->idea->dashboardCards(Auth::user()->id, htmlspecialchars(str_replace('%', '', $seachKey)),
             $sortBy, $filterBy, 'index');
 
@@ -401,7 +387,6 @@ class UsersDashboardController extends \BaseController
         $html = '';
         $html .= View::make('user.dashboard.partials.idea.idea-activity',
             compact('idea', 'activities', 'lastActivityId', 'totalCount'))->render();
-
         return Response::json([
             'status' => 'success',
             'html' => $html,
@@ -423,20 +408,16 @@ class UsersDashboardController extends \BaseController
         switch (Input::get('content_type')) {
             case 'idea':
                 $totalViews = $this->idea->setViewed(Input::get('content_id'), Auth::user()->id);
-
                 break;
             case 'challenge':
                 $totalViews = $this->challenge->setChallengeViewed(Input::get('content_id'));
-
                 break;
             case 'bulletin':
                 $totalViews = $this->bulletin->setBulletinViewed(Input::get('content_id'));
-
                 break;
             default:
                 break;
         }
-
         return Response::json([
             'status' => 'success',
             'totalViews' => $totalViews,
@@ -448,11 +429,9 @@ class UsersDashboardController extends \BaseController
      * @author Rameez Rami <ramees.pu@cubettech.com>
      * @since 20-1-2016
      */
-
     public function endTutorial()
     {
         Session::forget('view_tutorial');
-
         return Response::json([
             'status' => 'success',
             'data' => ''
@@ -464,7 +443,6 @@ class UsersDashboardController extends \BaseController
      * @author Rameez Rami <ramees.pu@cubettech.com>
      * @since 20-1-2016
      */
-
     public function endAppTutorial()
     {
         $user = Auth::user();
@@ -472,11 +450,11 @@ class UsersDashboardController extends \BaseController
         $user->save();
         Session::forget('view_tutorial');
         $url = URL::route("user.feed");
-        if (Input::get('invite_block') == "1"):
+        if (Input::get('invite_block') == "1"){
             return Redirect::to($url . '?invite_block=1');
-        else:
+        }else{
             return Redirect::to($url);
-        endif;
+        }
     }
 
     /**
@@ -487,17 +465,14 @@ class UsersDashboardController extends \BaseController
     public function acceptTerms()
     {
         $authUserId = Auth::user()->id;
-
         DB::table('users')
             ->where('id','=',$authUserId)
             ->update([
                 'verified' => 1,
                 'tour' => 1
             ]);
-
         Session::forget('view_tutorial');
         Session::forget('privacy_policy');
-
         return Redirect::route("user.feed");
     }
 
@@ -509,17 +484,14 @@ class UsersDashboardController extends \BaseController
     public function showTerms()
     {
         $authUserId = Auth::user()->id;
-
         DB::table('users')
             ->where('id','=',$authUserId)
             ->update([
                 'verified' => 0,
                 'tour' => 0
             ]);
-
         Session::put('view_tutorial', 1);
         Session::put('privacy_policy', 1);
-
         return Redirect::route("user.feed");
     }
 
@@ -531,7 +503,6 @@ class UsersDashboardController extends \BaseController
     public function departments()
     {
         $departments = DB::table('departments')->get();
-
         return View::make('departments.departments-list', compact('departments'));
     }
 
@@ -543,8 +514,6 @@ class UsersDashboardController extends \BaseController
     public function stores()
     {
         $stores = DB::table('stores')->get();
-
         return View::make('stores.stores-list', compact('stores'));
     }
-
 }
