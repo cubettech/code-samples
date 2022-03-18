@@ -16,6 +16,13 @@ class ArticleService
         $this->tag = $tag;
     }
 
+    /**
+     * For connecting tags with the article
+     *
+     * @param  App\Models\Article $article
+     * @param  App\Models\Tag $tags
+     * @return void
+     */
     public function syncTags(Article $article, array $tags): void
     {
         $tagsIds = [];

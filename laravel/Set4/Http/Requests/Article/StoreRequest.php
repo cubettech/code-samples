@@ -6,11 +6,21 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRequest extends FormRequest
 {
+    /**
+     * authorize the user
+     *
+     * @return bool
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * rules to validate before storing an article
+     *
+     * @return array
+     */
     public function rules(): array
     {
         return [

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 
 class Article extends Model
 {
@@ -16,31 +15,62 @@ class Article extends Model
 
     protected $fillable = ['title', 'description', 'body'];
 
+    /**
+     * Get route slug
+     *
+     * @return string
+     */
     public function getRouteKeyName(): string
     {
         return 'slug';
     }
 
+    /**
+     * Finds the author of the article
+     *
+     * @return  Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get all tags associated with an article
+     *
+     * @return  Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
     }
 
+    /**
+     * Get all the users who mark the article as their favourite
+     *
+     * @return Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class);
     }
 
+    /**
+     * Get all comments related to the article
+     *
+     * @return  Illuminate\Database\Eloquent\Relations\HasMany
+     */
     public function comments(): HasMany
     {
         return $this->hasMany(Comment::class);
     }
 
+    /**
+     * Get filtered articles
+     *
+     * @param  mixed $filters
+     * @return Illuminate\Database\Eloquent\Collection
+     */
     public function getFiltered(array $filters): Collection
     {
         return $this->filter($filters, 'tag', 'tags', 'name')
@@ -53,17 +83,4 @@ class Article extends Model
             ->get();
     }
 
-    public function scopeFilter($query, array $filters, string $key, string $relation, string $column)
-    {
-        return $query->when(array_key_exists($key, $filters), function ($q) use ($filters, $relation, $column, $key) {
-            $q->whereRelation($relation, $column, $filters[$key]);
-        });
-    }
-
-    public function setTitleAttribute(string $title): void
-    {
-        $this->attributes['title'] = $title;
-
-        $this->attributes['slug'] = Str::slug($title);
-    }
 }

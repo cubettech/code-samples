@@ -6,11 +6,21 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class IndexRequest extends FormRequest
 {
+    /**
+     * authorize the user
+     *
+     * @return bool
+     */
     public function authorize(): bool
     {
         return true;
     }
 
+    /**
+     * rules to validate to get the list of articles
+     *
+     * @return array
+     */
     public function rules(): array
     {
         return [

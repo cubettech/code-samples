@@ -8,6 +8,12 @@ class ArticleResource extends JsonResource
 {
     public static $wrap = 'article';
 
+    /**
+     * Transform the resource into an array. (For single article)
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
     public function toArray($request): array
     {
         return [
