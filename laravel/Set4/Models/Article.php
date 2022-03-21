@@ -16,7 +16,7 @@ class Article extends Model
     protected $fillable = ['title', 'description', 'body'];
 
     /**
-     * Get route slug
+     * Get the route key for the model.
      *
      * @return string
      */

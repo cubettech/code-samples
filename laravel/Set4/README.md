@@ -18,15 +18,15 @@ Http/Controllers/ArticleController.php
 
 ### Requests
 
-Http/Requests/Article/DestroyRequest.php
-Http/Requests/Article/FeedRequest.php
-Http/Requests/Article/IndexRequest.php
-Http/Requests/Article/StoreRequest.php
+Http/Requests/Article/DestroyRequest.php <br />
+Http/Requests/Article/FeedRequest.php <br />
+Http/Requests/Article/IndexRequest.php <br />
+Http/Requests/Article/StoreRequest.php <br />
 Http/Requests/Article/UpdateRequest.php
 
 ### Resources
 
-Http/Resources/ArticleCollection.php
+Http/Resources/ArticleCollection.php <br />
 Http/Resources/ArticleResource.php
 
 ### Services
